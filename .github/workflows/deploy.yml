@@ -1,0 +1,50 @@
+name: Python CI
+
+on:
+  push:
+    branches: [ "main", "master" ]
+  pull_request:
+    branches: [ "main", "master" ]
+
+jobs:
+  build-and-test:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: "pip"
+
+      - name: Install Dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+
+      - name: Check Python Syntax
+        run: |
+          python -m compileall backend/
+          python -m py_compile run.py
+
+      - name: Verify application startup
+        run: |
+          # Start the server in the background
+          python run.py &
+          SERVER_PID=$!
+          
+          # Wait for the server to start
+          sleep 10
+          
+          # Check if the process is still running
+          if ps -p $SERVER_PID > /dev/null
+          then
+             echo "Server started successfully!"
+             kill $SERVER_PID
+          else
+             echo "Server failed to start."
+             exit 1
+          fi
